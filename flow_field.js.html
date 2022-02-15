@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<!--
+==================================================================
+Flow Field
+(https://www.github.com/Zushah/flow-field)
+(https://www.khanacademy.org/cs/z/5720162352185344)
+==================================================================
+Zushah (https://www.github.com/Zushah)
+==================================================================
+Released on Khan Academy: 03/15/2021
+Released on GitHub: 02/14/2022
+Updated (v1.0.0): 02/14/2022
+==================================================================
+-->
+
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Perlin Noisy Flow Field</title>
+        <style>
+            body {
+                overflow: hidden;
+            }
+            canvas {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+            }
+        </style>
+    </head>
+    <body>
+        <script src="https://cdn.jsdelivr.net/gh/NovaSagittarii/misc@1.0.2/p5.min.js"></script>
+        <div id="canvas-parent" ></div>
+        <script type="text" id="code">
+            var showFLOWFIELD = false;
+            var clicked = false;
+            mouseClicked = function() {
+                clicked = true;
+            }
+            
+            var particleColor;
+            var increment = 0.1;
+            var s = 10;
+            var col;
+            var row;
+            var zoffset = 0;
+            var particles = [];
+            var FLOWFIELD;
+            var Particle = function() {
+                this.pos = new createVector(random(width), random(height));
+                this.vel = new createVector(0, 0);
+                this.acc = new createVector(0, 0);
+                this.mxspd = 4;
+                this.lastpos = this.pos.copy();
+            };
+            Particle.prototype.update = function() {
+                this.vel.add(this.acc);
+                this.vel.limit(this.mxspd);
+                this.pos.add(this.vel);
+                this.acc.mult(0);
+            };
+            Particle.prototype.flow = function(vectors) {
+                var x = floor(this.pos.x / s);
+                var y = floor(this.pos.y / s);
+                var index = x + y * col;
+                var force = vectors[index];
+                this.applyForce(force);
+            };
+            Particle.prototype.applyForce = function(force) {
+                this.acc.add(force);
+            };
+            Particle.prototype.updatelastpos = function() {
+                this.lastpos.x = this.pos.x;
+                this.lastpos.y = this.pos.y;
+            };
+            Particle.prototype.constrain = function() {
+                if(this.pos.x > width) {
+                  this.pos.x = 0;
+                  this.updatelastpos();
+                }
+                if(this.pos.x < 0) {
+                  this.pos.x = width;
+                  this.updatelastpos();
+                }
+                if(this.pos.y > height) {
+                  this.pos.y = 0;
+                  this.updatelastpos();
+                }
+                if(this.pos.y < 0) {
+                  this.pos.y = height;
+                  this.updatelastpos();
+                }
+            };
+            Particle.prototype.display = function() {
+                stroke(particleColor);
+                strokeWeight(1);
+                if(showFLOWFIELD === true) {
+                    stroke(255, 255, 255, 150);
+                    strokeWeight(5);
+                }
+                line(this.pos.x, this.pos.y, this.lastpos.x, this.lastpos.y);
+                this.updatelastpos();
+            };
+            setup = function() {
+                createCanvas(window.innerWidth, window.innerHeight);
+                col = floor(width / s);
+                row = floor(height / s);
+                
+                FLOWFIELD = new Array(col * row);
+                
+                for (var i = 0; i < 1000; i++) {
+                    particles[i] = new Particle();
+                }
+                background(0);
+            }
+            draw = function() {
+                particleColor = color(random(205, 255), random(205, 255), random(205, 255), random(1, 30));
+                
+                if(showFLOWFIELD === true) {
+                    background(20);
+                }
+                var yoffset = 0;
+                for(var y = 0; y < row; y++) {
+                    var xoffset = 0;
+                    for(var x = 0; x < col; x++) {
+                        var index = x + y * col;
+                        var angle = noise(xoffset, yoffset, zoffset) * TWO_PI * 4;
+                        var v = new p5.Vector.fromAngle(angle);
+                        v.setMag(1);
+                        FLOWFIELD[index] = v;
+                        xoffset += increment;
+                        if(showFLOWFIELD === true) {
+                            stroke(255, 50);
+                            push();
+                            translate(x * s, y * s);
+                            rotate(v.heading());
+                            strokeWeight(1);
+                            line(0, 0, s, 0);
+                            pop();
+                        }
+                    }
+                    yoffset += increment;
+                    zoffset += 0.00005;
+                }
+                for(var i = 0; i < particles.length; i++) {
+                    particles[i].flow(FLOWFIELD);
+                    particles[i].update();
+                    particles[i].constrain();
+                    particles[i].display();
+                }
+                
+                if(clicked === true && showFLOWFIELD === false) {
+                    showFLOWFIELD = true;
+                    clicked = false;
+                }
+                if(clicked === true && showFLOWFIELD === true) {
+                    showFLOWFIELD = false;
+                    clicked = false;
+                    background(0);
+                }
+            }
+        </script>
+        <script>
+            var code = document.getElementById("code");
+            var script = document.createElement("script");
+            script.innerHTML = code.innerHTML;
+            document.body.appendChild(script);
+        </script>
+    </body>
+</html>
